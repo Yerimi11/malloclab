@@ -1,4 +1,26 @@
 /*
+ * malloclab - Implemented with an explicit free list allocator to manage allocation of and
+ * freeing of memory.  
+ *
+ * Block structures:
+ * An explicit list uses the payload to embed pointers to the previous and next free blocks
+ * within a free block. The free and allocated block organizations are shown below:
+ *
+ * Allocated Block          Free Block
+ *  ---------               ---------
+ * | HEADER  |             | HEADER  |
+ *  ---------               ---------
+ * |         |             |  NEXT   |
+ * |         |              ---------
+ * | PAYLOAD |             |  PREV   |
+ * |         |              ---------
+ * |         |             |         |
+ *  ---------              |         |
+ * | FOOTER  |              ---------
+ *  ---------              | FOOTER  |
+ *                          ---------
+ * /
+/*
  * mm-naive.c - The fastest, least memory-efficient malloc package.
  * 
  * In this naive approach, a block is allocated by simply incrementing
@@ -91,6 +113,15 @@ static void place(void *bp, size_t a_size);
 
 /* 
  * mm_init - initialize the malloc package.
+ *         - Initializes the heap like that shown below.
+ *  ____________                                                    _____________
+ * |  PROLOGUE  |                8+ bytes or 2 ptrs                |   EPILOGUE  |
+ * |------------|------------|-----------|------------|------------|-------------|
+ * |   HEADER   |   HEADER   |        PAYLOAD         |   FOOTER   |    HEADER   |
+ * |------------|------------|-----------|------------|------------|-------------|
+ * ^            ^            ^       
+ * heap_listp   free_listp   bp 
+ * 
  */
 int mm_init(void)
 { // 할당기 : 초기화 완료 후, 어플리케이션으로부터 할당과 반환 요청을 받을 준비를 완료한다. 
@@ -160,7 +191,7 @@ void *mm_malloc(size_t size) // malloc : size 바이트의 메모리 블록을 �
     char *bp;
 
     /* Ignore spurious requests */
-    if (size == 0) {
+    if (size == 0) { // 입력받은 사이즈가 0이라면 무시
         return NULL;
     }
 
@@ -205,6 +236,8 @@ static void *find_fit(size_t a_size) {
             }
         }
         return NULL;
+
+        // 방법 2)
         // char *bp;
         // // next_ptr에서 리스트의 끝까지 검색
         // for (bp = next_ptr ; GET_SIZE(HDRP(bp)) > 0 ; bp = NEXT_BLKP(bp)) {
@@ -236,17 +269,17 @@ static void place(void *bp, size_t a_size) {
     다음 블록으로 이동하기 전에 새롭게 할당한 블록을 배치해야 한다 */
     size_t c_size = GET_SIZE(HDRP(bp)); // current_size
 
-    // 배치 후에 이 블록의 나머지가 최소 블록의 크기와 같거나 크다면, 진행해서 블록을 분할해야 한다.
+    // 배치 후에 이 블록의 나머지가 최소 블록의 크기와 같거나 크다면, 블록을 분할해야 한다. (필요한 만큼 할당하고, 남은 공간 0 해주기)
     if ((c_size - a_size) >= (2 * (DSIZE))) { // 최소 16보다 큰 경우에 대해서. c가 현재 블록의 크기, a가 우리가 넣으려는 크기. 둘 빼서 들어갈 수 있는지.
         // 요청 용량 만큼 새롭게 할당한 블록 배치
-        PUT(HDRP(bp), PACK(a_size, 1)); // 16보다 커서 넥스트블록으로 넘어갈 경우, 앞 블록은 이미 찾으니까 써야하고
-        PUT(FTRP(bp), PACK(a_size, 1)); // 뒤에 블록에 다음 블록으로 넘어가서 또 할당을 한다는 의미..
+        PUT(HDRP(bp), PACK(a_size, 1)); // 일단은 요청받은 사이즈만큼 할당을 해준다 : 헤더
+        PUT(FTRP(bp), PACK(a_size, 1)); // 푸터
         bp = NEXT_BLKP(bp); // 다음 블록으로 이동
-        // 남은 블록에 header, footer 배치
+        // 그 다음, 요청받은 사이즈만큼 할당 하고 남은 블럭에 남은 사이즈 만큼의 Free 블록을 만들어준다. 0짜리 header, footer 배치
         PUT(HDRP(bp), PACK(c_size - a_size, 0));
         PUT(FTRP(bp), PACK(c_size - a_size, 0));
     }
-    else { // csize와 aszie 차이가 네 칸(16byte)보다 작다면 해당 블록 통째로 사용한다.(전체를 할당)
+    else { // 아니면 현재 사이즈가 남아있는 블록의 크기랑 똑같다면 그냥 그대로 전체 통째로 할당.
         PUT(HDRP(bp), PACK(c_size, 1));
         PUT(FTRP(bp), PACK(c_size, 1));
     }
