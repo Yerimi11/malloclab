@@ -61,7 +61,7 @@ team_t team = {
 #define ALIGNMENT 8
 
 /* rounds up to the nearest multiple of ALIGNMENT */
-#define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~0x7) // ptr에 7byte를 더한 위치에서 allocate bit를 제거
+#define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~0x7) // ptr에 7byte를 더한 위치에서 allocate bit를 제거(ALIGNMENT와 가장 근접한 8배수(ALLIGNMENT배수)로 반올림)
                     // align으로 크기 맞춰줌 (1칸 뺌) & 비트마스크
                     // 0x7(주소) = 7 = 111(2) // ~은 not. 전부 뒤집어져서 111 -> 000
                     // 아무 숫자 15321341 111 & 000 -> 은 000이 되니까 값을 지워줄 수 있게 됨. 이 이후에 포인터 앞으로 다시 보냄
