@@ -86,12 +86,12 @@ team_t team = {
 #define GET(p)      (*(unsigned int *)(p)) // 포인터 p가 가리키는 곳의 한 word 값을 읽어온다 
 #define PUT(p, val) (*(unsigned int *)(p) = (val)) // 포인터 p가 가리키는 곳의 한 word의 값에 val를 기록 
                     // unsigned int > size_t로 바꾸기
-/* Read the size and allocated fields from address p */
+/* Read the size and allocated fields from address p */ // ~0x7은 "111....000"의 숫자가 된다. 즉, 헤더 정보에 있는 사이즈의 크기만 쉽게 가져옴
 #define GET_SIZE(p)     (GET(p) & ~0x7) // 포인터 p가 가리키는 곳에서 한 word를 읽은 다음 하위 3bit를 버린다. 즉, header에서 block size를 읽는다.
 #define GET_ALLOC(p)    (GET(p) & 0x1) // 포인터 p가 가리키는 곳에서 한 word를 읽은 다음 최하위 1bit를 읽는다. 1할당, 0노할당
 
 /* Given block ptr bp, compute address of its geader and footer */
-#define HDRP(bp)        ((char *)(bp) - WSIZE) // 주어진 포인터 bp의 header(-4)의 주소를 계산 // bp : 페이로드가 시작되는 부분
+#define HDRP(bp)        ((char *)(bp) - WSIZE) // 주어진 포인터 bp의 header(-4)의 주소를 계산 // bp : 페이로드가 시작되는 부분, 4:WSIZE
 #define FTRP(bp)        ((char *)(bp) + GET_SIZE(HDRP(bp)) - DSIZE) // 주어진 포인터 bp의 footer 주소 계산
                                     // GET_SIZE(4) - 8 : 헤더값이 포함된 size - 헤더, 풋터값(8)
                     // (char *)(bp) : bp 포인터가 가리키는 블록의 주소를 얻어온다
